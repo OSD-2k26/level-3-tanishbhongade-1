@@ -12,7 +12,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # get all branches and full history
+          fetch-depth: 0
+
+      - name: Fetch required branches
+        run: |
+          git fetch origin path:path truth:truth
 
       - name: Verify repo state
         shell: bash
@@ -22,28 +26,23 @@ jobs:
             exit 1
           }
 
-          # 1. Branches must exist
           for b in main path truth; do
             git show-ref --verify --quiet "refs/heads/$b" \
               || fail "Branch '$b' does not exist"
           done
 
-          # 2. path must have path.txt
           git show "path:path.txt" >/dev/null 2>&1 \
             || fail "Branch 'path' does not contain path.txt"
 
-          # 3. truth must have truth.txt
           git show "truth:truth.txt" >/dev/null 2>&1 \
             || fail "Branch 'truth' does not contain truth.txt"
 
-          # 4. main must contain both branches
           git merge-base --is-ancestor path main \
             || fail "'path' has not been merged into 'main'"
 
           git merge-base --is-ancestor truth main \
             || fail "'truth' has not been merged into 'main'"
 
-          # 5. path must be merged before truth
           mb_path=$(git merge-base main path)
           mb_truth=$(git merge-base main truth)
 
